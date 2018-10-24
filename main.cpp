@@ -1,4 +1,8 @@
 #include <iostream>
+#include <string>
+#include <sstream>
+#include <vector>
+#include <utility>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -40,6 +44,15 @@ int main(int argc, char* argv[])
         return -1;
     }
 
+    std::vector<std::pair<std::string, GLenum>> openGLInfoDict {
+      std::make_pair("OpenGL renderer: ", GL_RENDERER)
+    , std::make_pair("Vendor: ", GL_VENDOR)
+    , std::make_pair("OpenGL version: ", GL_VERSION)
+    , std::make_pair("GLSL version: ", GL_SHADING_LANGUAGE_VERSION)
+    };
+    auto infoString = getOpenGLInfoString(openGLInfoDict);
+    std::cout << infoString << std::endl;
+
     const char *vertexText[] = {
           "#version 410 core\n"
         , "in vec2 pos2D;\n"
@@ -67,6 +80,8 @@ int main(int argc, char* argv[])
     glAttachShader(shaderProgram, fragmentShader);
     glBindFragDataLocation(shaderProgram, 0, "outColor");
     glLinkProgram(shaderProgram);
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
 
     GLuint pos2DLoc = glGetAttribLocation(shaderProgram, "pos2D");
 
@@ -107,6 +122,10 @@ int main(int argc, char* argv[])
             glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
     }
+
+    glDeleteProgram(shaderProgram);
+    glDeleteBuffers(1, &vbo);
+    glDeleteVertexArrays(1, &vao);
     glfwDestroyWindow(window);
     glfwTerminate();
     return 0;
