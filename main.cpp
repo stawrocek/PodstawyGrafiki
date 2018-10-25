@@ -7,6 +7,10 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include "include/GLUtils.h"
 #include "include/GLProgram.h"
 
@@ -75,10 +79,41 @@ int main(int argc, char* argv[])
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    /* Transformations! */
 
+    // simple transformations with GLM
+    auto v1 = glm::vec4(1.0f,1.0f,1.0f,1.0f);
+    auto translation = glm::mat4(1.0f);
+    translation = glm::translate(translation, glm::vec3(0.5f, 0.5f, 0.5f));
+    std::cout << v1 << "\n";
+    v1 = translation * v1;    
+    std::cout << v1 << "\n";
+
+    // applying transformations to geometry
+    auto transMatLocation = glGetUniformLocation(program.id, "transform");
+    program.use();  // !!!
+    glUniformMatrix4fv(transMatLocation, 1, GL_FALSE, glm::value_ptr(translation));
+
+    // compositing transformations
+    auto rotation = glm::mat4(1.0f);
+    auto scale = glm::mat4(1.0f);
+    rotation = glm::rotate(rotation, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    scale = glm::scale(scale, glm::vec3(0.5f, 0.5f, 1.0f));
+    auto transformation = translation * scale * rotation;
+    glUniformMatrix4fv(transMatLocation, 1, GL_FALSE, glm::value_ptr(transformation));
+
+    // matrix order in OpenGL (column-major GLSL vs row-major C)
+    const float cTranslation[4][4] = {
+          {0.5f, 0.0f, 0.0f, -0.4f}
+        , {0.0f, 0.5f, 0.0f, -0.4f}
+        , {0.0f ,0.0f, 0.5f,  0.0f}
+        , {0.0f, 0.0f, 0.0f,  1.0f}
+    };
+    glUniformMatrix4fv(transMatLocation, 1, GL_TRUE, &cTranslation[0][0]);
+
+    /* Transformations! */
     glClearColor(.3f, .3f, .3f, 1.0f);
     /*  Insert OpenGL magic here! */
-    std::cout << program.id << "\n";
     while(!glfwWindowShouldClose(window))
     {
         /*  Insert OpenGL magic here! */

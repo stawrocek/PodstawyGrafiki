@@ -8,6 +8,10 @@
 
 #include <GL/glew.h>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 std::string getOpenGLInfoString(
       const std::vector<std::pair<std::string, GLenum>>& dictionary
     , const std::string& sep = "\n"
@@ -35,4 +39,8 @@ void checkShaderCompileStatus(const GLuint shaderId)
     }
 }
 
+std::ostream& operator<<(std::ostream& os, const glm::vec3& v)
+{
+    return os << v.x << " " << v.y << " " << v.z;
+}
 #endif  // GL_UTILS_H
