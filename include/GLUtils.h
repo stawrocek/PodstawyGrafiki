@@ -43,4 +43,19 @@ std::ostream& operator<<(std::ostream& os, const glm::vec3& v)
 {
     return os << v.x << " " << v.y << " " << v.z;
 }
+std::ostream& operator<<(std::ostream& os, const glm::vec4& v)
+{
+    return os << v.x << " " << v.y << " " << v.z << " " << v.w;
+}
+std::ostream& operator<<(std::ostream& os, const glm::mat4& m4)
+{
+    for (auto i : {0,1,2,3})
+    {
+        os << m4[i][0] << "\t"
+           << m4[i][1] << "\t"
+           << m4[i][2] << "\t"
+           << m4[i][3] << "\n";
+    }
+    return os;
+}
 #endif  // GL_UTILS_H
