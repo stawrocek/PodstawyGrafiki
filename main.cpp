@@ -53,37 +53,8 @@ int main(int argc, char* argv[])
     auto infoString = getOpenGLInfoString(openGLInfoDict);
     std::cout << infoString << std::endl;
 
-    const char *vertexText[] = {
-          "#version 410 core\n"
-        , "in vec2 pos2D;\n"
-        , "void main(){\n"
-        , "gl_Position = vec4(pos2D, 0.0, 1.0);\n"
-        , "}"
-    };
-    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 5, vertexText, 0);
-    glCompileShader(vertexShader);
-
-    const char *fragmentText[] = {
-          "#version 410 core\n"
-        , "out vec4 outColor;\n"
-        , "void main(){\n"
-        , " outColor = vec4(1.0, 0.5, 1.0, 1.0);"
-        , "}"
-    };
-    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 5, fragmentText, 0);
-    glCompileShader(fragmentShader);
-
-    GLuint shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glBindFragDataLocation(shaderProgram, 0, "outColor");
-    glLinkProgram(shaderProgram);
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-
-    GLuint pos2DLoc = glGetAttribLocation(shaderProgram, "pos2D");
+    ShaderProgram program{"./shader/triangle.vert.glsl", "./shader/triangle.frag.glsl"};
+    GLuint pos2DLoc = 0;
 
     GLuint vao;
     glGenVertexArrays(1, &vao);
@@ -107,11 +78,12 @@ int main(int argc, char* argv[])
 
     glClearColor(.3f, .3f, .3f, 1.0f);
     /*  Insert OpenGL magic here! */
+    std::cout << program.id << "\n";
     while(!glfwWindowShouldClose(window))
     {
         /*  Insert OpenGL magic here! */
         glClear(GL_COLOR_BUFFER_BIT);
-        glUseProgram(shaderProgram);
+        program.use();
         glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLES, 0, 3);
         /*  Insert OpenGL magic here! */
@@ -123,7 +95,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    glDeleteProgram(shaderProgram);
+    // glDeleteProgram(shaderProgram);
     glDeleteBuffers(1, &vbo);
     glDeleteVertexArrays(1, &vao);
     glfwDestroyWindow(window);
