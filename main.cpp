@@ -82,94 +82,27 @@ int main(int argc, char* argv[])
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    /* Transformations! */
-
-    // simple transformations with GLM
-    auto v1 = glm::vec4(1.0f,1.0f,1.0f,1.0f);
-    auto translation = glm::mat4(1.0f);
-    translation = glm::translate(translation, glm::vec3(0.5f, 0.5f, 0.5f));
-    std::cout << v1 << "\n";
-    v1 = translation * v1;    
-    std::cout << v1 << "\n";
-
-    // applying transformations to geometry
-    auto transMatLocation = glGetUniformLocation(program.id, "transform");
-    program.use();  // !!!
-    glUniformMatrix4fv(transMatLocation, 1, GL_FALSE, glm::value_ptr(translation));
-
-    // compositing transformations
-    auto rotation = glm::mat4(1.0f);
-    auto scale = glm::mat4(1.0f);
-    rotation = glm::rotate(rotation, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    scale = glm::scale(scale, glm::vec3(0.5f, 0.5f, 1.0f));
-    auto transformation = translation * scale * rotation;
-    glUniformMatrix4fv(transMatLocation, 1, GL_FALSE, glm::value_ptr(transformation));
-
-    // matrix order in OpenGL (column-major GLSL vs row-major C)
-    const float cTranslation[4][4] = {
-          {0.5f, 0.0f, 0.0f, -0.4f}
-        , {0.0f, 0.5f, 0.0f, -0.4f}
-        , {0.0f ,0.0f, 0.5f,  0.0f}
-        , {0.0f, 0.0f, 0.0f,  1.0f}
-    };
-    glUniformMatrix4fv(transMatLocation, 1, GL_TRUE, &cTranslation[0][0]);
-    /* Transformations! */
 
     /* Projections! */    
     // local 2 world <==> model
     auto model = glm::mat4(1.0f);
     model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f,0.0f,0.0f));
-    glUniformMatrix4fv(transMatLocation, 1, GL_FALSE, glm::value_ptr(model));
-
-    /* Camera and lookAt! */
-    glm::vec3 worldOrigin = glm::vec3(0.0f);
-    glm::vec3 worldUp = glm::vec3(0.0f,1.0f,0.0f);
-    glm::vec3 camPosition = glm::vec3(0.0f,1.0f,3.0f);
-    auto camZ = glm::normalize(camPosition - worldOrigin);
-    auto camX = glm::cross(worldUp, camZ);
-    auto camY = glm::cross(camZ, camX);
-
-    glm::mat4 camOrthoBasis = glm::mat4(
-          glm::vec4(camX, 0.0f)
-        , glm::vec4(camY, 0.0f)
-        , glm::vec4(camZ, 0.0f)
-        , glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
-    );
-    camOrthoBasis = glm::transpose(camOrthoBasis);
-
-    auto camTranslation = glm::mat4(1.0f);
-    camTranslation[3] = glm::vec4(-camPosition, 1.0f);
-
-    auto world2Camera = camOrthoBasis * camTranslation;
-    auto lookAt = glm::lookAt(camPosition, worldOrigin, worldUp);
-
-    std::cout << world2Camera << "\n";
-    std::cout << lookAt << "\n";
-    /* Camera and lookAt! */
 
     // world 2 camera <==> view - this transformation is opposite to word origin to camera 
-    auto view = glm::mat4(1.0f);
-    view = glm::translate(view, glm::vec3(0.0f,0.0f,-3.0f));
-    view = world2Camera;
-    glUniformMatrix4fv(transMatLocation, 1, GL_FALSE, glm::value_ptr(view * model)); // what will happen now?
+    auto worldOrigin = glm::vec3(0.0f);
+    auto worldUp = glm::vec3(0.0f,1.0f,0.0f);
+    auto camPosition = glm::vec3(0.0f,1.0f,3.0f);
+    auto view = glm::lookAt(camPosition, worldOrigin, worldUp);
 
     // camera 2 clip space 2 NDC <==> projection
-    glm::mat4 projection;
-    if (true)
-    {
-        projection = glm::perspective(
-            glm::radians(45.0f)
-            , (float)width/(float)height
-            , 0.1f
-            , 100.0f
-        );
-    }
-    else
-    {
-        // careful with size!!!
-        // https://www.opengl.org/discussion_boards/showthread.php/176144-glm-ortho-problem-SOLVED
-        projection = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, 0.1f, 100.0f);
-    }
+    glm::mat4 projection = glm::perspective(
+          glm::radians(45.0f)
+        , (float)width/(float)height
+        , 0.1f
+        , 100.0f
+    );
+    auto transMatLocation = glGetUniformLocation(program.id, "transform");
+    program.use();  // !!!
     glUniformMatrix4fv(transMatLocation, 1, GL_FALSE, glm::value_ptr(projection * view * model));
     /* Projections! */    
 
@@ -181,7 +114,7 @@ int main(int argc, char* argv[])
         /*  Insert OpenGL magic here! */
         glClear(GL_COLOR_BUFFER_BIT);
         program.use();
-        rotation = glm::rotate(glm::mat4(1.0f), (float)glfwGetTime() ,glm::vec3(0.0f,0.0f,1.0f));
+        auto rotation = glm::rotate(glm::mat4(1.0f), (float)glfwGetTime() ,glm::vec3(0.0f,0.0f,1.0f));
         glUniformMatrix4fv(transMatLocation, 1, GL_FALSE, glm::value_ptr(projection * view * model * rotation));
         glBindVertexArray(vao);
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
