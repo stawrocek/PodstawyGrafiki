@@ -4,4 +4,4 @@ LIBS := -L /usr/local/lib -lGLEW -lglfw3
 INCLUDE := -I /usr/local/include
 
 all:
-	$(CXX) $(CXXFLAGS) $(FRAMEWORKS) $(LIBS) $(INCLUDE) main.cpp -o program.out
+	$(CXX) main.cpp $(CXXFLAGS) $(FRAMEWORKS) $(LIBS) $(INCLUDE) -o program.out
