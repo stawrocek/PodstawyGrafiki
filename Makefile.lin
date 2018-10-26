@@ -1,0 +1,6 @@
+CXXFLAGS += -Wall -pedantic -std=c++14 -DDEBUG
+LIBS := -L /usr/local/lib -lGL -lGLEW -lglfw
+INCLUDE := -I /usr/local/include
+
+all:
+	$(CXX) $(CXXFLAGS) $(LIBS) $(INCLUDE) main.cpp -o program.out
