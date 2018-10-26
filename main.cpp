@@ -14,6 +14,8 @@
 #include "include/GLUtils.h"
 #include "include/GLProgram.h"
 
+#define CULLING_ON 1
+
 struct Vertex3DN {
     glm::vec3 pos;
     glm::vec3 normal;
@@ -64,12 +66,12 @@ int main(int argc, char* argv[])
     auto infoString = getOpenGLInfoString(openGLInfoDict);
     std::cout << infoString << std::endl;
 
-    ShaderProgram program{"./shader/normal.vert.glsl", "./shader/normal.frag.glsl"};
+    ShaderProgram program{"./shader/blinnphong.vert.glsl", "./shader/blinnphong.frag.glsl"};
     GLuint vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
-    auto normalUp = glm::vec3(0.0f, 0.0f, 1.0f);
+    auto normalUp = glm::vec3(0.0f, 1.0f, 0.0f);
     std::vector<Vertex3DN> vertices = {
           Vertex3DN{glm::vec3(1.0f, 0.0f, -1.0f), normalUp}
         , Vertex3DN{glm::vec3(-1.0f, 0.0f, -1.0f), normalUp}
@@ -94,12 +96,13 @@ int main(int argc, char* argv[])
     /* Projections! */    
     // local 2 world <==> model
     auto model = glm::mat4(1.0f);
-    // model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f,0.0f,0.0f));
+    model = glm::scale(model, glm::vec3(1.5f));
+
 
     // world 2 camera <==> view - this transformation is opposite to word origin to camera 
     auto worldOrigin = glm::vec3(0.0f);
     auto worldUp = glm::vec3(0.0f,1.0f,0.0f);
-    auto camPosition = glm::vec3(0.0f,1.0f,5.0f);
+    auto camPosition = glm::vec3(0.0f,3.0f,5.0f);
     auto view = glm::lookAt(camPosition, worldOrigin, worldUp);
 
     // N - normal transform matrix !!!
@@ -118,6 +121,7 @@ int main(int argc, char* argv[])
     auto viewMatLocation = glGetUniformLocation(program.id, "view");
     auto projectionMatLocation = glGetUniformLocation(program.id, "projection");
     auto NMatLocation = glGetUniformLocation(program.id, "N");
+
     program.use();  // !!!
     glUniformMatrix4fv(mvMatLocation, 1, GL_FALSE, glm::value_ptr(view * model));
     glUniformMatrix4fv(viewMatLocation, 1, GL_FALSE, glm::value_ptr(view));
@@ -126,19 +130,54 @@ int main(int argc, char* argv[])
     /* Projections! */    
 
     /* Shading! */
+    auto lightPosition = glm::vec3(0.0f, 3.0f, -5.0f);  // light world position
+    auto lightIntensity = glm::vec3(0.6f);  // light intensity/color
+
+    auto lightPosLoc = glGetUniformLocation(program.id, "light.position");
+    glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightPosition));
+
+    auto lightIntensLoc = glGetUniformLocation(program.id, "light.intensity");
+    glUniform3fv(lightIntensLoc, 1, glm::value_ptr(lightIntensity));
+
+    auto Ia = 0.1f; // ambient intesity
+    glm::vec3 ka, kd; // ambient and diffuse color
+    ka = kd = glm::vec3(1.0f, 1.0f, 0.5f);
+    auto ks = glm::vec3(1.0f); // specular color
+    auto phongExp = 64.0f;  // Phong exponent
+
+    glUniform1f(glGetUniformLocation(program.id, "phongExp"), phongExp);
+    glUniform1f(glGetUniformLocation(program.id, "Ia"), Ia);
+    auto loadUniform3fv = [&](const std::string& uniformName, const glm::vec3& v){
+        glUniform3fv(
+              glGetUniformLocation(program.id, uniformName.c_str())
+            , 1
+            , glm::value_ptr(v)
+        );
+    };
+    loadUniform3fv("ka", ka);
+    loadUniform3fv("kd", kd);
+    loadUniform3fv("ks", ks);
     /* Shading! */
 
     glClearColor(.3f, .3f, .3f, 1.0f);
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    // glPolygonMode(GL_FRONT, GL_FILL);
+
+    glEnable(GL_DEPTH_TEST);
+#if CULLING_ON
+	glEnable(GL_CULL_FACE);     // cull face
+	glCullFace(GL_BACK);        // cull back face
+	glFrontFace(GL_CCW);        // GL_CCW for counter clock-wise
+#endif
     /*  Insert OpenGL magic here! */
     while(!glfwWindowShouldClose(window))
     {
         /*  Insert OpenGL magic here! */
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         program.use();
 
-        auto rotation = glm::rotate(glm::mat4(1.0f), (float)glfwGetTime() ,glm::vec3(1.0f,0.0f,0.0f));
-        glUniformMatrix4fv(mvMatLocation, 1, GL_FALSE, glm::value_ptr(view * (model * rotation)));
+        auto rotation = glm::rotate(glm::mat4(1.0f), (float)glfwGetTime() ,glm::vec3(0.0f,1.0f,0.0f));
+        glUniformMatrix4fv(mvMatLocation, 1, GL_FALSE, glm::value_ptr(view * (rotation * model)));
+
         N = glm::transpose(glm::inverse(view * model * rotation));
         glUniformMatrix4fv(NMatLocation, 1, GL_FALSE, glm::value_ptr(N));
 
@@ -148,8 +187,21 @@ int main(int argc, char* argv[])
         glfwSwapBuffers(window);
         glfwPollEvents();  // gotta go fast!
         // glfwWaitEvents();  // save some cycles!
-        if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_ESCAPE)) {
+        if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_ESCAPE))
+        {
             glfwSetWindowShouldClose(window, GLFW_TRUE);
+        }
+        if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_LEFT))
+        {
+            phongExp = glm::max(phongExp - 0.2f, 0.0f);
+            glUniform1f(glGetUniformLocation(program.id, "phongExp"), phongExp);
+            std::cout << "phongExp: " << phongExp << "\n";
+        }
+        if (GLFW_PRESS == glfwGetKey(window, GLFW_KEY_RIGHT))
+        {
+            phongExp = glm::min(phongExp + 0.2f, 256.0f);
+            glUniform1f(glGetUniformLocation(program.id, "phongExp"), phongExp);
+            std::cout << "phongExp: " << phongExp << "\n";
         }
     }
 

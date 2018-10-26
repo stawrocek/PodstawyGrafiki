@@ -11,7 +11,19 @@ struct PointLight {
 };
 uniform PointLight light;
 
+uniform float Ia;
+uniform vec3 ka, kd, ks;
+uniform float phongExp;
+
 void main()
 {
-    mainColor = vec4(normalView.xyz * 0.5 + 0.5, 1.0);
+    vec3 n = normalize(normalView.xyz);
+    vec3 h = normalize(halfView);
+    vec3 l = normalize(lightDir);
+
+    vec3 surfaceColor =
+          Ia * ka
+        + light.intensity * kd * max(0.0, dot(n, l))
+        + light.intensity * ks * pow(dot(n, h), phongExp);
+    mainColor = vec4(surfaceColor, 1.0);
 }
